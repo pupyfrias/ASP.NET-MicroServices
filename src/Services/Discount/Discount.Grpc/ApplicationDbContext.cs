@@ -1,13 +1,13 @@
-﻿using Discount.API.Entities.V1;
+﻿using Discount.Grpc.Entities.V1;
 using Microsoft.EntityFrameworkCore;
 
-namespace Discount.API
+namespace Discount.Grpc
 {
-    public class ApplicationDbContext: DbContext
+    public class ApplicationDbContext : DbContext
     {
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options):base(options)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
-            
+
         }
 
         public DbSet<Coupon> Coupons { get; set; }
