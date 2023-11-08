@@ -2,6 +2,8 @@ using Asp.Versioning;
 using Basket.API.Interfaces;
 using Basket.API.Repositories;
 using Basket.API.Services;
+using Basket.API.Services.gRPC;
+using Discount.Grpc.Protos;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
@@ -22,9 +24,14 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
+builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(options =>
+{
+    options.Address = new Uri(configuration["GrpcSettings:DiscountUrl"] ?? string.Empty);
+});
 
 builder.Services.AddScoped<IBasketRepository, BasketRepository>();
 builder.Services.AddScoped<IBasketService, BasketService>();
+builder.Services.AddScoped<DiscountGrpcService>();
 
 var app = builder.Build();
 

@@ -33,8 +33,8 @@ namespace Discount.API.Migrations
                 columns: new[] { "Id", "Amount", "Description", "ProductName" },
                 values: new object[,]
                 {
-                    { 1, 55, "Samsung Discount", "Samsung" },
-                    { 2, 65, "IPhone Discount", "IPhone" }
+                    { 1, 55, "Samsung Discount", "Samsung 10" },
+                    { 2, 65, "IPhone Discount", "IPhone X" }
                 });
         }
 
