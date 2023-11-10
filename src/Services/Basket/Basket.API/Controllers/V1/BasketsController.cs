@@ -1,6 +1,9 @@
 ﻿using Asp.Versioning;
+using AutoMapper;
 using Basket.API.Entities.V1;
 using Basket.API.Interfaces;
+using EventBus.Messages.Event;
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Basket.API.Controllers.V1
@@ -12,10 +15,14 @@ namespace Basket.API.Controllers.V1
     public class BasketsController : ControllerBase
     {
         private readonly IBasketService _basketService;
+        private readonly IMapper _mapper;
+        private readonly IPublishEndpoint _publishEndpoint;
 
-        public BasketsController(IBasketService basketService)
+        public BasketsController(IBasketService basketService, IMapper mapper, IPublishEndpoint publishEndpoint)
         {
             _basketService = basketService;
+            _mapper = mapper;
+            _publishEndpoint = publishEndpoint;
         }
 
         [HttpGet("{userName}")]
@@ -38,5 +45,23 @@ namespace Basket.API.Controllers.V1
             await _basketService.UpdateBasketAsync(shoppingCar);
             return NoContent();
         }
+
+        [HttpPost("checkout")]
+        public async Task<ActionResult> CheckoutAsync(BasketCheckout basketCheckout)
+        {
+            var basket = await _basketService.GetBasketAsync(basketCheckout.UserName);
+
+            if(basket == null)
+            {
+                return BadRequest();
+            }
+            var eventMessage = _mapper.Map<BasketCheckoutEvent>(basketCheckout);
+
+            await _publishEndpoint.Publish(eventMessage);
+
+            await _basketService.DeleteBasketAsync(basketCheckout.UserName);
+            return Accepted();
+        }
+
     }
 }

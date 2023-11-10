@@ -1,20 +1,17 @@
 using Asp.Versioning;
-using Basket.API.Interfaces;
-using Basket.API.Repositories;
-using Basket.API.Services;
-using Basket.API.Services.gRPC;
-using Discount.Grpc.Protos;
+using EventBus.Messages.Common;
 using MassTransit;
-using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using Ordering.API.EventBusConsumer;
+using Ordering.Application;
+using Ordering.Infrastructure;
+using Ordering.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddStackExchangeRedisCache(options => options.Configuration = configuration["CacheSettings:ConnectionString"]);
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -25,33 +22,39 @@ builder.Services.AddApiVersioning(options =>
     options.GroupNameFormat = "'v'VVV";
     options.SubstituteApiVersionInUrl = true;
 });
-
-builder.Services.AddGrpcClient<DiscountProtoService.DiscountProtoServiceClient>(options =>
-{
-    options.Address = new Uri(configuration["GrpcSettings:DiscountUrl"] ?? string.Empty);
-});
-
-builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly());
-builder.Services.AddScoped<IBasketRepository, BasketRepository>();
-builder.Services.AddScoped<IBasketService, BasketService>();
-builder.Services.AddScoped<DiscountGrpcService>();
+builder.Services.AddSwaggerGen();
 builder.Services.AddMassTransit(options =>
 {
+    options.AddConsumer<BasketCheckoutConsumer>();
     options.UsingRabbitMq((context, configurator) =>
     {
         configurator.Host(configuration["EventBusSettings:HostAddress"]);
+        configurator.ReceiveEndpoint(EventBusConstants.BasketCheckoutQueue, configure =>
+        {
+            configure.ConfigureConsumer<BasketCheckoutConsumer>(context);
+        });
     });
 });
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(configuration);
+builder.Services.AddScoped<BasketCheckoutConsumer>();
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    using (var scope = app.Services.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<OrderDbContext>();
+        dbContext.Database.Migrate();
+    }
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseAuthorization();
+
 app.MapControllers();
+
 app.Run();

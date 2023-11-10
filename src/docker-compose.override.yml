@@ -8,6 +8,7 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db 
+    
 
   basket.db:
     container_name: basket.db
@@ -27,6 +28,23 @@ services:
     volumes:
         - discount_data:/var/lib/postgresql/data 
    
+
+  order.db:
+    container_name: order.db
+    restart: always
+    ports:
+        - "1434:1433"
+    environment:
+      SA_PASSWORD: "SwN12345678"
+      ACCEPT_EULA: "Y"
+
+  rabbitmq:
+    container_name: rabbitmq
+    restart: always
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+
   pgadmin:
     container_name: pgadmin
     restart: always
@@ -66,6 +84,7 @@ services:
     depends_on:
       - basket.db
       - discount.api
+      - rabbitmq
 
 
   discount.api:
@@ -91,3 +110,14 @@ services:
     volumes:
       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
       - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro
+
+  ordering.api:
+    container_name: ordering.api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8004:80"
+    depends_on:
+      - order.db 
+      - rabbitmq
+
