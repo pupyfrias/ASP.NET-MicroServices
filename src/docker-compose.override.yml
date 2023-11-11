@@ -121,3 +121,11 @@ services:
       - order.db 
       - rabbitmq
 
+
+  ocelotapigateway:
+    container_name: ocelot.apigateway
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "8010:80"
+
